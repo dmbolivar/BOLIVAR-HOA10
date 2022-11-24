@@ -1,0 +1,160 @@
+  - name:  Setting up the SELINUX of Ubuntu remote server to permissive
+    selinux:
+      policy: targeted
+      state: permissive
+    when: ansible_os_family == 'Ubuntu'
+
+  - name: Updating the systemctl for max_map_count
+    sysctl:
+      name: vm.max_map_count
+      value: "262144"
+      sysctl_set: yes
+
+  - name: Adding user to "Elasticsearch"
+    user:
+      name: elasticsearch
+      comment: elasticsearch user
+
+  - name: Creating a directory for downloaded files
+    file:
+      path: /data
+      state: directory
+      mode: 0777
+
+  - name: Installing the Elasticsearch tar ball
+    get_url:
+      url: https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.8.15.tar.gz
+      dest: /data/elasticsearch-6.8.15.tar.gz
+      mode: 0755
+
+  - name: Extracting the Elasticsearch
+    unarchive:
+      src: /data/elasticsearch-6.8.15.tar.gz
+      dest: /data/
+      remote_src: yes
+      creates: /data/elasticsearch-6.8.15/config/elasticsearch.yml
+
+  - name: Elastic Search systemd service unit file
+    template:
+      src: elasticsearch.service.j2
+      dest: /etc/systemd/system/elasticsearch.service
+      mode: 0644
+
+  - name: Configuration template for Elastic Search
+    template:
+      src: elasticsearch.yml.j2
+      dest: /data/elasticsearch-6.8.15/config/elasticsearch.yml
+      mode: 0660
+
+  - file:
+      path: /data/elasticsearch-6.8.15
+      owner: elasticsearch
+      group: elasticsearch
+      recurse: yes
+
+  - name: Reloading Daemon
+    systemd:
+      daemon_reload: yes
+
+  - name: Starting the Elastic Search service
+    service:
+      name: elasticsearch
+      state: started
+      enabled: yes
+
+#Kibana Installation and Configuration
+
+  - name: Creating directory for downloaded files
+    file:
+      path: /data
+      state: directory
+      mode: 0777
+
+  - name: Installation of Kibana tar
+    get_url:
+      url: https://artifacts.elastic.co/downloads/kibana/kibana-6.8.15-linux-x86_64.tar.gz
+      dest: /data/kibana-6.8.15-linux-x86_64.tar.gz
+      mode: 0755
+
+  - name: Extracting of Kibana
+    unarchive:
+      src: /data/kibana-6.8.15-linux-x86_64.tar.gz
+      dest: /data/
+      remote_src: yes
+      creates: /data/kibana-6.8.15-linux-x86_64/config/kibana.yml
+
+  - name: Inserting the Kibana systemd service unit file
+    template:
+      src: kibana.service.j2
+      dest: /etc/systemd/system/kibana.service
+      mode: 0644
+
+  - name: Inserting the update of configration template for Kibana
+    template:
+      src: kibana.yml.j2
+      dest: /data/kibana-6.8.15-linux-x86_64/config/kibana.yml
+      mode: 0660
+
+  - name: Reloading Daemon
+    systemd:
+      daemon_reload: yes
+
+  - name: Start of Kibana service
+    service:
+      name: kibana
+      state: started
+      enabled: yes
+
+# Logstash Setup
+  - name: Creating directory for downloaded files
+    file:
+      path: /data
+      state: directory
+      mode: "u=rwx,g=rwx,o=rwx"
+
+  - name: Installation of logstash tar ball
+    get_url:
+      url: https://artifacts.elastic.co/downloads/logstash/logstash-6.8.15.tar.gz
+      dest: /data/logstash-6.8.15.tar.gz
+      mode: 0755
+
+  - name: Extracting of logstash
+    unarchive:
+      src: /data/logstash-6.8.15.tar.gz
+      dest: /data/
+      remote_src: yes
+      creates: /data/logstash-6.8.15/conf.d/inputs.conf
+
+  - name: Inserting the Logstash systemd service unit file
+    template:
+      src: logstash.service.j2
+      dest: /etc/systemd/system/logstash.service
+      mode: 0644
+
+  - name: The script of logstash for starting/stopping
+    template:
+      src: start.sh.j2
+      dest: /data/logstash-6.8.15/start.sh
+      mode: 0754
+
+  - name: Creating directory /data/logstash-6.8.15/conf.d
+    file:
+      path: /data/logstash-6.8.15/conf.d
+      state: directory
+      mode: 0777
+
+  - name: Updating the configuration default of logstash
+    template:
+      src: inputs.conf.j2
+      dest: /data/logstash-6.8.15/conf.d/inputs.conf
+      mode: 0660
+
+  - name: Reloading Daemon
+    systemd:
+      daemon_reload: yes
+
+  - name: Start of the Logstash service
+    service:
+      name: logstash
+      state: started
+      enabled: yes

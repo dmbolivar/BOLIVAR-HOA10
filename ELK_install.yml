@@ -1,0 +1,29 @@
+---
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: Install updates in Ubuntu
+    tags: always
+    apt:
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Updating repository indes in CentOS
+    tags: always
+    dnf:
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution == "CentOS"
+
+- hosts: ubuntu
+  become: true
+  roles:
+    - ELK_ubuntu
+
+- hosts: centos
+  become: true
+  roles:
+    - ELK_centos
+
